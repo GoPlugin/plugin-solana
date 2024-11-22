@@ -35,5 +35,5 @@
 
   Example:
 
-  - https://github.com/smartcontractkit/ccip/pull/7777777
+  - https://github.com/goplugin/ccip/pull/7777777
 -->
