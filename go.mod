@@ -21,14 +21,15 @@ require (
 	github.com/goplugin/plugin-testing-framework/lib v0.3.1 //for plugin update changes
 	github.com/goplugin/plugin-testing-framework/seth v0.1.1 //for plugin update changes
 	github.com/goplugin/pluginv3.0/integration-tests v2.2.0 //for plugin update changes
-	github.com/goplugin/pluginv3.0/v2 v2.2.0 //for plugin update changes
-	github.com/goplugin/plugin-libocr v0.1.1//for plugin update changes
 	//github.com/goplugin/plugin-common v0.0.1
 	//github.com/goplugin/plugin-solana v1.1.1-0.20241009122043-0270b7483530
 	//github.com/goplugin/plugin-testing-framework/lib v1.50.9
 	//github.com/goplugin/plugin-testing-framework/seth v1.50.1
+	//github.com/goplugin/pluginv3.0/integration-tests v2.2.0
 	//github.com/goplugin/pluginv3.0/integration-tests v0.0.0-20241010121659-f4c9b9edec10
+	github.com/goplugin/pluginv3.0/v2 v2.3.0
 	//github.com/goplugin/pluginv3.0/v2 v2.14.0-mercury-20240807.0.20241010121659-f4c9b9edec10
+	github.com/goplugin/plugin-libocr v0.1.1
 	//github.com/goplugin/plugin-libocr v0.0.0-20241007185508-adbe57025f12
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go v0.28.0
