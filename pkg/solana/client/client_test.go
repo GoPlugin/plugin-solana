@@ -20,7 +20,6 @@ import (
 
 	"github.com/goplugin/plugin-common/pkg/logger"
 
-	mn "github.com/goplugin/plugin-solana/pkg/solana/client/multinode"
 	"github.com/goplugin/plugin-solana/pkg/solana/config"
 	"github.com/goplugin/plugin-solana/pkg/solana/monitor"
 )
@@ -77,9 +76,9 @@ func TestClient_Reader_Integration(t *testing.T) {
 	assert.Equal(t, uint64(5000), fee)
 
 	// get chain ID based on gensis hash
-	network, err := c.ChainID(context.Background())
+	network, err := c.ChainID()
 	assert.NoError(t, err)
-	assert.Equal(t, mn.StringID("localnet"), network)
+	assert.Equal(t, "localnet", network)
 
 	// get account info (also tested inside contract_test)
 	res, err := c.GetAccountInfoWithOpts(context.TODO(), solana.PublicKey{}, &rpc.GetAccountInfoOpts{Commitment: rpc.CommitmentFinalized})
@@ -121,9 +120,9 @@ func TestClient_Reader_ChainID(t *testing.T) {
 
 	// get chain ID based on gensis hash
 	for _, n := range networks {
-		network, err := c.ChainID(context.Background())
+		network, err := c.ChainID()
 		assert.NoError(t, err)
-		assert.Equal(t, mn.StringID(n), network)
+		assert.Equal(t, n, network)
 	}
 }
 

@@ -551,8 +551,6 @@ func (r *chainReaderInterfaceTester) GetContractReader(t *testing.T) types.Contr
 }
 
 type wrappedTestChainReader struct {
-	types.UnimplementedContractReader
-
 	test            *testing.T
 	service         *chainreader.SolanaChainReaderService
 	client          *mockedRPCClient
@@ -857,7 +855,7 @@ func fullStructIDL(t *testing.T) string {
 	return fmt.Sprintf(
 		baseIDL,
 		strings.Join([]string{testStructAIDL, testStructBIDL}, ","),
-		strings.Join([]string{midLevelDynamicStructIDL, midLevelStaticStructIDL, innerDynamicStructIDL, innerStaticStructIDL}, ","),
+		strings.Join([]string{midLevelStructIDL, innerStructIDL}, ","),
 	)
 }
 
@@ -877,8 +875,7 @@ const (
 				{"name": "field","type": {"option": "i32"}},
 				{"name": "differentField","type": "string"},
 				{"name": "bigField","type": "i128"},
-				{"name": "nestedDynamicStruct","type": {"defined": "MidLevelDynamicStruct"}},
-				{"name": "nestedStaticStruct","type": {"defined": "MidLevelStaticStruct"}}
+				{"name": "nestedStruct","type": {"defined": "MidLevelStruct"}}
 			]
 		}
 	}`
@@ -896,46 +893,24 @@ const (
 		}
 	}`
 
-	midLevelDynamicStructIDL = `{
-		"name": "MidLevelDynamicStruct",
+	midLevelStructIDL = `{
+		"name": "MidLevelStruct",
 		"type": {
 			"kind": "struct",
 			"fields": [
 				{"name": "fixedBytes", "type": {"array": ["u8",2]}},
-				{"name": "inner", "type": {"defined": "InnerDynamicTestStruct"}}
+				{"name": "inner", "type": {"defined": "InnerTestStruct"}}
 			]
 		}
 	}`
 
-	midLevelStaticStructIDL = `{
-		"name": "MidLevelStaticStruct",
-		"type": {
-			"kind": "struct",
-			"fields": [
-				{"name": "fixedBytes", "type": {"array": ["u8",2]}},
-				{"name": "inner", "type": {"defined": "InnerStaticTestStruct"}}
-			]
-		}
-	}`
-
-	innerDynamicStructIDL = `{
-		"name": "InnerDynamicTestStruct",
+	innerStructIDL = `{
+		"name": "InnerTestStruct",
 		"type": {
 			"kind": "struct",
 			"fields": [
 				{"name": "i", "type": "i32"},
 				{"name": "s", "type": "string"}
-			]
-		}
-	}`
-
-	innerStaticStructIDL = `{
-		"name": "InnerStaticTestStruct",
-		"type": {
-			"kind": "struct",
-			"fields": [
-				{"name": "i", "type": "i32"},
-				{"name": "a", "type": "bytes"}
 			]
 		}
 	}`

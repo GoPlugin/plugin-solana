@@ -9,7 +9,7 @@ cluster = "localnet"
 wallet = "id.json"
 
 [scripts]
-test = "pnpm run test"
+test = "yarn run test"
 
 # [programs.mainnet]
 # TODO: add pubkeys

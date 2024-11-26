@@ -6,13 +6,12 @@ import (
 	"fmt"
 
 	"github.com/gagliardetto/solana-go"
-	"golang.org/x/exp/constraints"
 )
 
 // https://github.com/solana-labs/solana/blob/60858d043ca612334de300805d93ea3014e8ab37/sdk/src/compute_budget.rs#L25
 const (
 	// deprecated: will not support for building instruction
-	InstructionRequestUnitsDeprecated computeBudgetInstruction = iota
+	InstructionRequestUnitsDeprecated uint8 = iota
 
 	// Request a specific transaction-wide program heap region size in bytes.
 	// The value requested must be a multiple of 1024. This new heap region
@@ -31,61 +30,29 @@ const (
 	InstructionSetComputeUnitPrice
 )
 
-var (
-	ComputeBudgetProgram = solana.MustPublicKeyFromBase58("ComputeBudget111111111111111111111111111111")
+const (
+	ComputeBudgetProgram = "ComputeBudget111111111111111111111111111111"
 )
-
-type computeBudgetInstruction uint8
-
-func (ins computeBudgetInstruction) String() (out string) {
-	out = "INVALID"
-	switch ins {
-	case InstructionRequestUnitsDeprecated:
-		out = "RequestUnitsDeprecated"
-	case InstructionRequestHeapFrame:
-		out = "RequestHeapFrame"
-	case InstructionSetComputeUnitLimit:
-		out = "SetComputeUnitLimit"
-	case InstructionSetComputeUnitPrice:
-		out = "SetComputeUnitPrice"
-	}
-	return out
-}
-
-// instruction is an internal interface for encoding instruction data
-type instruction interface {
-	Data() ([]byte, error)
-	Selector() computeBudgetInstruction
-}
 
 // https://docs.solana.com/developing/programming-model/runtime
 type ComputeUnitPrice uint64
 
+// returns the compute budget program
+func (val ComputeUnitPrice) ProgramID() solana.PublicKey {
+	return solana.MustPublicKeyFromBase58(ComputeBudgetProgram)
+}
+
+// No accounts needed
+func (val ComputeUnitPrice) Accounts() (accounts []*solana.AccountMeta) {
+	return accounts
+}
+
 // simple encoding into program expected format
 func (val ComputeUnitPrice) Data() ([]byte, error) {
-	return encode(InstructionSetComputeUnitPrice, val)
-}
-
-func (val ComputeUnitPrice) Selector() computeBudgetInstruction {
-	return InstructionSetComputeUnitPrice
-}
-
-type ComputeUnitLimit uint32
-
-func (val ComputeUnitLimit) Data() ([]byte, error) {
-	return encode(InstructionSetComputeUnitLimit, val)
-}
-
-func (val ComputeUnitLimit) Selector() computeBudgetInstruction {
-	return InstructionSetComputeUnitLimit
-}
-
-// encode combines the identifier and little encoded value into a byte array
-func encode[V constraints.Unsigned](identifier computeBudgetInstruction, val V) ([]byte, error) {
 	buf := new(bytes.Buffer)
 
 	// encode method identifier
-	if err := buf.WriteByte(uint8(identifier)); err != nil {
+	if err := buf.WriteByte(InstructionSetComputeUnitPrice); err != nil {
 		return []byte{}, err
 	}
 
@@ -98,70 +65,49 @@ func encode[V constraints.Unsigned](identifier computeBudgetInstruction, val V) 
 }
 
 func ParseComputeUnitPrice(data []byte) (ComputeUnitPrice, error) {
-	v, err := parse(InstructionSetComputeUnitPrice, data, binary.LittleEndian.Uint64)
-	return ComputeUnitPrice(v), err
-}
-
-func ParseComputeUnitLimit(data []byte) (ComputeUnitLimit, error) {
-	v, err := parse(InstructionSetComputeUnitLimit, data, binary.LittleEndian.Uint32)
-	return ComputeUnitLimit(v), err
-}
-
-// parse implements tx data parsing for the provided instruction type and specified decoder
-func parse[V constraints.Unsigned](ins computeBudgetInstruction, data []byte, decoder func([]byte) V) (V, error) {
-	if len(data) != (1 + binary.Size(V(0))) { // instruction byte + uintXXX length
+	if len(data) != (1 + 8) { // instruction byte + uint64
 		return 0, fmt.Errorf("invalid length: %d", len(data))
 	}
 
-	// validate instruction identifier
-	if data[0] != uint8(ins) {
-		return 0, fmt.Errorf("not %s identifier: %d", ins, data[0])
+	if data[0] != InstructionSetComputeUnitPrice {
+		return 0, fmt.Errorf("not SetComputeUnitPrice identifier: %d", data[0])
 	}
 
-	// guarantees length to fit the binary decoder
-	return decoder(data[1:]), nil
+	// guarantees length 8
+	return ComputeUnitPrice(binary.LittleEndian.Uint64(data[1:])), nil
 }
 
 // modifies passed in tx to set compute unit price
-func SetComputeUnitPrice(tx *solana.Transaction, value ComputeUnitPrice) error {
-	return set(tx, value, true) // data feeds expects SetComputeUnitPrice instruction to be right before report instruction
-}
-
-func SetComputeUnitLimit(tx *solana.Transaction, value ComputeUnitLimit) error {
-	return set(tx, value, false) // appends instruction to the end
-}
-
-// set adds or modifies instructions for the compute budget program
-func set(tx *solana.Transaction, baseData instruction, appendToFront bool) error {
+func SetComputeUnitPrice(tx *solana.Transaction, price ComputeUnitPrice) error {
 	// find ComputeBudget program to accounts if it exists
 	// reimplements HasAccount to retrieve index: https://github.com/gagliardetto/solana-go/blob/618f56666078f8131a384ab27afd918d248c08b7/message.go#L233
 	var exists bool
-	var programIdx int
+	var programIdx uint16
 	for i, a := range tx.Message.AccountKeys {
-		if a.Equals(ComputeBudgetProgram) {
+		if a.Equals(price.ProgramID()) {
 			exists = true
-			programIdx = i
+			programIdx = uint16(i)
 			break
 		}
 	}
 	// if it doesn't exist, add to account keys
 	if !exists {
-		tx.Message.AccountKeys = append(tx.Message.AccountKeys, ComputeBudgetProgram)
-		programIdx = len(tx.Message.AccountKeys) - 1 // last index of account keys
+		tx.Message.AccountKeys = append(tx.Message.AccountKeys, price.ProgramID())
+		programIdx = uint16(len(tx.Message.AccountKeys) - 1) // last index of account keys
 
 		// https://github.com/gagliardetto/solana-go/blob/618f56666078f8131a384ab27afd918d248c08b7/transaction.go#L293
 		tx.Message.Header.NumReadonlyUnsignedAccounts++
 	}
 
 	// get instruction data
-	data, err := baseData.Data()
+	data, err := price.Data()
 	if err != nil {
 		return err
 	}
 
 	// compiled instruction
 	instruction := solana.CompiledInstruction{
-		ProgramIDIndex: uint16(programIdx), //nolint:gosec // max value would exceed tx size
+		ProgramIDIndex: programIdx,
 		Data:           data,
 	}
 
@@ -169,9 +115,9 @@ func set(tx *solana.Transaction, baseData instruction, appendToFront bool) error
 	var found bool
 	var instructionIdx int
 	for i := range tx.Message.Instructions {
-		if int(tx.Message.Instructions[i].ProgramIDIndex) == programIdx &&
+		if tx.Message.Instructions[i].ProgramIDIndex == programIdx &&
 			len(tx.Message.Instructions[i].Data) > 0 &&
-			tx.Message.Instructions[i].Data[0] == uint8(baseData.Selector()) {
+			tx.Message.Instructions[i].Data[0] == InstructionSetComputeUnitPrice {
 			found = true
 			instructionIdx = i
 			break
@@ -181,11 +127,8 @@ func set(tx *solana.Transaction, baseData instruction, appendToFront bool) error
 	if found {
 		tx.Message.Instructions[instructionIdx] = instruction
 	} else {
-		if appendToFront {
-			tx.Message.Instructions = append([]solana.CompiledInstruction{instruction}, tx.Message.Instructions...)
-		} else {
-			tx.Message.Instructions = append(tx.Message.Instructions, instruction)
-		}
+		// build with first instruction as set compute unit price
+		tx.Message.Instructions = append([]solana.CompiledInstruction{instruction}, tx.Message.Instructions...)
 	}
 
 	return nil

@@ -193,7 +193,7 @@ func (c *ContractDeployer) DeployOCRv2Store(billingAC string) (*Store, error) {
 	}, nil
 }
 
-func (c *ContractDeployer) CreateFeed(desc string, decimals uint8, granularity uint8, liveLength uint32) error {
+func (c *ContractDeployer) CreateFeed(desc string, decimals uint8, granularity int, liveLength int) error {
 	payer := c.Client.DefaultWallet
 	programWallet := c.Client.ProgramWallets["store-keypair.json"]
 	feedAccInstruction, err := c.Client.CreateAccInstr(c.Accounts.Feed.PublicKey(), OCRTransmissionsAccountSize, programWallet.PublicKey())
@@ -208,8 +208,8 @@ func (c *ContractDeployer) CreateFeed(desc string, decimals uint8, granularity u
 			store2.NewCreateFeedInstruction(
 				desc,
 				decimals,
-				granularity,
-				liveLength,
+				uint8(granularity),
+				uint32(liveLength),
 				c.Accounts.Feed.PublicKey(),
 				c.Accounts.Owner.PublicKey(),
 			).Build(),

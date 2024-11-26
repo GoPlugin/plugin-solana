@@ -17,7 +17,6 @@ import (
 	"github.com/goplugin/plugin-common/pkg/types"
 	"github.com/goplugin/plugin-common/pkg/types/query"
 	"github.com/goplugin/plugin-common/pkg/types/query/primitives"
-	"github.com/goplugin/plugin-common/pkg/values"
 
 	"github.com/goplugin/plugin-solana/pkg/solana/codec"
 	"github.com/goplugin/plugin-solana/pkg/solana/config"
@@ -26,8 +25,6 @@ import (
 const ServiceName = "SolanaChainReader"
 
 type SolanaChainReaderService struct {
-	types.UnimplementedContractReader
-
 	// provided values
 	lggr   logger.Logger
 	client BinaryDataReader
@@ -108,22 +105,22 @@ func (s *SolanaChainReaderService) GetLatestValue(ctx context.Context, readIdent
 	s.wg.Add(1)
 	defer s.wg.Done()
 
-	vals, ok := s.lookup.getContractForReadIdentifiers(readIdentifier)
+	values, ok := s.lookup.getContractForReadIdentifiers(readIdentifier)
 	if !ok {
 		return fmt.Errorf("%w: no contract for read identifier %s", types.ErrInvalidType, readIdentifier)
 	}
 
-	addressMappings, err := decodeAddressMappings(vals.address)
+	addressMappings, err := decodeAddressMappings(values.address)
 	if err != nil {
 		return fmt.Errorf("%w: %s", types.ErrInvalidConfig, err)
 	}
 
-	addresses, ok := addressMappings[vals.readName]
+	addresses, ok := addressMappings[values.readName]
 	if !ok {
-		return fmt.Errorf("%w: no addresses for readName %s", types.ErrInvalidConfig, vals.readName)
+		return fmt.Errorf("%w: no addresses for readName %s", types.ErrInvalidConfig, values.readName)
 	}
 
-	bindings, err := s.bindings.GetReadBindings(vals.contract, vals.readName)
+	bindings, err := s.bindings.GetReadBindings(values.contract, values.readName)
 	if err != nil {
 		return err
 	}
@@ -132,38 +129,6 @@ func (s *SolanaChainReaderService) GetLatestValue(ctx context.Context, readIdent
 		return fmt.Errorf("%w: addresses and bindings lengths do not match", types.ErrInvalidConfig)
 	}
 
-	// if the returnVal is not a *values.Value, run normally without using the ptrToValue
-	ptrToValue, isValue := returnVal.(*values.Value)
-	if !isValue {
-		return s.runAllBindings(ctx, bindings, addresses, params, returnVal)
-	}
-
-	// if the returnVal is a *values.Value, create the type from the contract, run normally, and wrap the value
-	contractType, err := s.bindings.CreateType(vals.contract, vals.readName, false)
-	if err != nil {
-		return err
-	}
-
-	if err = s.runAllBindings(ctx, bindings, addresses, params, contractType); err != nil {
-		return err
-	}
-
-	value, err := values.Wrap(contractType)
-	if err != nil {
-		return err
-	}
-
-	*ptrToValue = value
-
-	return nil
-}
-
-func (s *SolanaChainReaderService) runAllBindings(
-	ctx context.Context,
-	bindings []readBinding,
-	addresses []string,
-	params, returnVal any,
-) error {
 	localCtx, localCancel := context.WithCancel(ctx)
 
 	// the wait group ensures GetLatestValue returns only after all go-routines have completed

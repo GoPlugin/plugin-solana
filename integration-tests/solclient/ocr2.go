@@ -10,11 +10,10 @@ import (
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/rs/zerolog/log"
+	"github.com/goplugin/pluginv3.0/integration-tests/contracts"
 	"github.com/goplugin/plugin-libocr/offchainreporting2/confighelper"
 
-	"github.com/goplugin/pluginv3.0/integration-tests/contracts"
-
-	"github.com/goplugin/plugin-solana/contracts/generated/ocr_2"
+	ocr_2 "github.com/goplugin/plugin-solana/contracts/generated/ocr_2"
 	"github.com/goplugin/plugin-solana/integration-tests/utils"
 )
 
@@ -172,7 +171,7 @@ func (m *OCRv2) makeDigest() ([]byte, error) {
 		return nil, err
 	}
 	hasher := sha256.New()
-	hasher.Write(append([]byte{}, uint8(proposal.Oracles.Len))) //nolint:gosec // number of oracles cannot exceed 225
+	hasher.Write(append([]byte{}, uint8(proposal.Oracles.Len)))
 	for _, oracle := range proposal.Oracles.Xs[:proposal.Oracles.Len] {
 		hasher.Write(oracle.Signer.Key[:])
 		hasher.Write(oracle.Transmitter.Bytes())
@@ -183,7 +182,7 @@ func (m *OCRv2) makeDigest() ([]byte, error) {
 	hasher.Write(proposal.TokenMint.Bytes())
 	header := make([]byte, 8+4)
 	binary.BigEndian.PutUint64(header, proposal.OffchainConfig.Version)
-	binary.BigEndian.PutUint32(header[8:], uint32(proposal.OffchainConfig.Len)) // nolint:gosec
+	binary.BigEndian.PutUint32(header[8:], uint32(proposal.OffchainConfig.Len))
 	hasher.Write(header)
 	hasher.Write(proposal.OffchainConfig.Xs[:proposal.OffchainConfig.Len])
 	return hasher.Sum(nil), nil
@@ -255,7 +254,6 @@ func (m *OCRv2) Configure(cfg contracts.OffChainAggregatorV2Config) error {
 		cfg.S,
 		cfg.Oracles,
 		cfg.ReportingPluginConfig,
-		nil,
 		cfg.MaxDurationQuery.Duration(),
 		cfg.MaxDurationObservation.Duration(),
 		cfg.MaxDurationReport.Duration(),
@@ -336,7 +334,7 @@ func (m *OCRv2) proposeConfig(ocConfig contracts.OffChainAggregatorV2Config) err
 		[]solana.Instruction{
 			ocr_2.NewProposeConfigInstruction(
 				oracles,
-				uint8(ocConfig.F), //nolint:gosec // F cannot exceed max oracles (255)
+				uint8(ocConfig.F),
 				m.Proposal.PublicKey(),
 				m.Owner.PublicKey(),
 			).Build(),

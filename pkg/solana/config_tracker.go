@@ -25,7 +25,7 @@ func (c *ConfigTracker) LatestConfigDetails(ctx context.Context) (changedInBlock
 	return state.Config.LatestConfigBlockNumber, state.Config.LatestConfigDigest, err
 }
 
-func ConfigFromState(ctx context.Context, state State) (types.ContractConfig, error) {
+func ConfigFromState(state State) (types.ContractConfig, error) {
 	pubKeys := []types.OnchainPublicKey{}
 	accounts := []types.Account{}
 	oracles, err := state.Oracles.Data()
@@ -43,7 +43,7 @@ func ConfigFromState(ctx context.Context, state State) (types.ContractConfig, er
 		Max: state.Config.MaxAnswer.BigInt(),
 	}
 
-	onchainConfig, err := median.StandardOnchainConfigCodec{}.Encode(ctx, onchainConfigStruct)
+	onchainConfig, err := median.StandardOnchainConfigCodec{}.Encode(onchainConfigStruct)
 	if err != nil {
 		return types.ContractConfig{}, err
 	}
@@ -70,7 +70,7 @@ func (c *ConfigTracker) LatestConfig(ctx context.Context, changedInBlock uint64)
 	if err != nil {
 		return types.ContractConfig{}, err
 	}
-	return ConfigFromState(ctx, state)
+	return ConfigFromState(state)
 }
 
 // LatestBlockHeight returns the height of the most recent block in the chain.

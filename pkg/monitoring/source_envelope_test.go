@@ -13,11 +13,8 @@ import (
 	"github.com/goplugin/plugin-libocr/offchainreporting2/types"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/goplugin/plugin-common/pkg/logger"
 	commonMonitoring "github.com/goplugin/plugin-common/pkg/monitoring"
-	"github.com/goplugin/plugin-common/pkg/utils/tests"
 
 	"github.com/goplugin/plugin-solana/pkg/monitoring/mocks"
 	"github.com/goplugin/plugin-solana/pkg/monitoring/testutils"
@@ -147,7 +144,7 @@ func TestEnvelopeSource(t *testing.T) {
 		mock.Anything, // ctx
 		feedConfig.StateAccount,
 		mock.Anything, // // because it's hard to mock pointer values!
-	).Return(fakeTxSignatures, nil).Once()
+	).Return(fakeTxSignatures, nil)
 	chainReader.On("GetTransaction",
 		mock.Anything, // ctx
 		fakeTxSignatures[0].Signature,
@@ -158,8 +155,7 @@ func TestEnvelopeSource(t *testing.T) {
 	).Return(fakeTxResult, nil)
 
 	// Call Fetch
-	lgr, logs := logger.TestObserved(t, zapcore.DebugLevel)
-	factory := NewEnvelopeSourceFactory(chainReader, lgr)
+	factory := NewEnvelopeSourceFactory(chainReader, testutils.NewNullLogger())
 	source, err := factory.NewSource(chainConfig, feedConfig)
 	require.NoError(t, err)
 	rawEnvelope, err := source.Fetch(context.Background())
@@ -225,23 +221,6 @@ func TestEnvelopeSource(t *testing.T) {
 		AggregatorRoundID:       0x13841a,
 	}
 	require.Equal(t, expectedEnvelope, envelope)
-
-	t.Run("empty tx list should return cached JuelsPerLamport", func(t *testing.T) {
-		chainReader.On("GetSignaturesForAddressWithOpts",
-			mock.Anything,
-			feedConfig.StateAccount,
-			mock.Anything,
-		).Return([]*rpc.TransactionSignature{}, nil).Once() // return empty
-
-		envSource, ok := source.(*envelopeSource)
-		require.True(t, ok)
-		cacheValue := envSource.readJuelsPerLamport()
-
-		v, err := envSource.getJuelsPerLamport(tests.Context(t))
-		require.NoError(t, err)
-		require.Equal(t, cacheValue, v.Uint64())
-		tests.AssertLogEventually(t, logs.FilterLevelExact(zapcore.WarnLevel), "no transactions found, falling back to cached value - history may have been pruned (cached_value=0 indicates pruned txs encountered on startup)")
-	})
 }
 
 func TestGetLinkAvailableForPayment(t *testing.T) {
