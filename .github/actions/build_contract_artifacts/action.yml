@@ -1,0 +1,54 @@
+name: Build Contract Artifacts
+description: Common builder for test contracts for automated tests
+inputs:
+  ref:
+    required: false
+    description: The plugin-solana ref to use
+  image:
+    required: false
+    description: docker image to use to build
+  image-version:
+    required: false
+    description: docker image version/tag to use for build
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout solana
+      uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b # v4.1.5
+      with:
+        repository: goplugin/plugin-solana
+        ref: ${{ inputs.ref }}
+
+    # temporary docker run to build artifacts
+    - name: Docker Builder
+      if: ${{ inputs.image != '' && inputs.image-version != '' }}
+      env:
+        image: ${{ inputs.image }}
+        image_version: ${{ inputs.image-version }}
+      shell: bash
+      run: |
+        # start container
+        docker run -d -v $(pwd):/repo --name build-container "${image}":"${image_version}" tail -f /dev/null
+        # generate go bindings
+        docker exec build-container bash -c "/repo/scripts/build-contract-artifacts-action.sh"
+        # check go bindings
+        git diff --stat --exit-code
+        # build with keys
+        docker exec build-container bash -c "\
+          export RUSTUP_HOME=\"/root/.rustup\" &&\
+          cd /repo &&\
+          ./scripts/programs-keys-gen.sh &&\
+          cd ./contracts &&\
+          anchor build &&\
+          chown -R $(id -u):$(id -g) /repo"
+        # clean up the container
+        docker stop build-container
+        docker rm build-container
+
+    #save the contracts artifacts
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      with:
+        name: artifacts
+        path: contracts/target/deploy
