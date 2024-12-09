@@ -17,9 +17,11 @@ require (
 	github.com/jpillora/backoff v1.0.0
 	github.com/pelletier/go-toml/v2 v2.2.0
 	github.com/prometheus/client_golang v1.17.0
-	github.com/goplugin/plugin-common v0.0.1
-	github.com/goplugin/libocr v0.1.1
+	github.com/goplugin/plugin-common v0.1.1
+	github.com/goplugin/plugin-libocr v0.1.1
 	github.com/stretchr/testify v1.9.0
+	//github.com/goplugin/plugin-common v0.3.1-0.20241011160913-5d432bcdc2e8
+	//github.com/goplugin/plugin-libocr v0.0.0-20241007185508-adbe57025f12
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 	golang.org/x/sync v0.8.0
@@ -89,6 +91,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v5 v5.2.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/goplugin/grpc-proxy v0.1.1
+	//github.com/goplugin/grpc-proxy v0.0.0-20240830132753-a7e17fec5ab7 // indirect
 	github.com/streamingfast/logging v0.0.0-20220405224725-2755dab2ce75 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/teris-io/shortid v0.0.0-20201117134242-e59966efd125 // indirect

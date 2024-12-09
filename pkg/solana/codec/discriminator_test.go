@@ -6,8 +6,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/goplugin/plugin-common/pkg/types"
 	"github.com/stretchr/testify/require"
+
+	"github.com/goplugin/plugin-common/pkg/types"
 
 	"github.com/goplugin/plugin-solana/pkg/solana/codec"
 )
