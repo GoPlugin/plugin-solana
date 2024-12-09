@@ -1,0 +1,53 @@
+name: DependencyUpdater
+on: 
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # check every day at midnight UTC
+  
+jobs:
+  E2E-Solana-Image:
+    uses: ./.github/workflows/open-pr.yml
+    with:
+      reviewers: aalu1418
+      run: |
+        make upgrade-solana-image
+        image=$(curl https://api.github.com/repos/solana-labs/solana/releases/latest | jq -r '.tag_name')
+
+        # outputs
+        echo "name=bump/solana-$image" >> "$GITHUB_OUTPUT"
+        echo "prTitle=[automated] bump solana image to $image" >> "$GITHUB_OUTPUT"
+        echo "prBody=Latest Solana mainnet release is [$image](https://github.com/solana-labs/solana/releases/latest)" >> "$GITHUB_OUTPUT"
+        echo "commitString=[automated] bump solana dependencies" >> "$GITHUB_OUTPUT"
+    secrets: inherit
+  E2E-Testing-Dependencies:
+    uses: ./.github/workflows/open-pr.yml
+    with:
+      reviewers: aalu1418
+      run: |
+
+        # get CTF version in core
+        git clone https://github.com/goplugin/pluginv3.0.git temp-plugin
+        cd temp-plugin/integration-tests
+        coreVersion=$(go list -m github.com/goplugin/plugin-testing-framework/lib | awk '{print $NF}')
+        cd ../../
+        rm -rf temp-plugin
+        echo "plugin/integration-tests CTF/lib: $coreVersion"
+
+        # get CTF version in solana
+        cd integration-tests
+        solVersion=$(go list -m github.com/goplugin/plugin-testing-framework/lib | awk '{print $NF}')
+        echo "plugin-solana/integration-tests CTF/lib: $solVersion"
+        cd ../
+        
+        # compare versions
+        if [[ $coreVersion != $solVersion ]]; then
+          make upgrade-e2e-core-deps
+          make gomodtidy
+        fi
+
+        # outputs
+        echo "name=bump/e2e-deps-$coreVersion" >> "$GITHUB_OUTPUT"
+        echo "prTitle=[automated] bump e2e test deps to match plugin/integration-tests" >> "$GITHUB_OUTPUT"
+        echo "prBody=plugin/integration-tests uses plugin-testing-framework@$coreVersion" >> "$GITHUB_OUTPUT"
+        echo "commitString=[automated] bump e2e <> core/integration-tests dependencies" >> "$GITHUB_OUTPUT"
+    secrets: inherit
