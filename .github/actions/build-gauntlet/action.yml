@@ -8,7 +8,7 @@ runs:
       uses: actions/checkout@v4.1.5
 
     - name: Get Tool Versions
-      uses: goplugin/tool-versions-to-env-action@v1.0.8
+      uses: smartcontractkit/tool-versions-to-env-action@v1.0.8
       id: tool-versions
 
     - name: Setup Node ${{ steps.tool-versions.outputs.nodejs_version }}

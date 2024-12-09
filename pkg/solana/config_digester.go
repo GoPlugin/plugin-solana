@@ -1,6 +1,7 @@
 package solana
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
@@ -20,7 +21,7 @@ type OffchainConfigDigester struct {
 }
 
 // ConfigDigest is meant to do the same thing as config_digest_from_data from the program.
-func (d OffchainConfigDigester) ConfigDigest(cfg types.ContractConfig) (types.ConfigDigest, error) {
+func (d OffchainConfigDigester) ConfigDigest(ctx context.Context, cfg types.ContractConfig) (types.ConfigDigest, error) {
 	digest := types.ConfigDigest{}
 	buf := sha256.New()
 
@@ -32,11 +33,11 @@ func (d OffchainConfigDigester) ConfigDigest(cfg types.ContractConfig) (types.Co
 		return digest, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(cfg.ConfigCount)); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, uint32(cfg.ConfigCount)); err != nil { //nolint:gosec // max onchain config count is u32
 		return digest, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint8(len(cfg.Signers))); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, uint8(len(cfg.Signers))); err != nil { //nolint:gosec // cannot be negative and protocol does not allow more than 255 signers
 		return digest, err
 	}
 
@@ -60,7 +61,7 @@ func (d OffchainConfigDigester) ConfigDigest(cfg types.ContractConfig) (types.Co
 		return digest, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(cfg.OnchainConfig))); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, uint32(len(cfg.OnchainConfig))); err != nil { //nolint:gosec // cannot be negative and omax u32 exceeds max onchain config length
 		return digest, err
 	}
 
@@ -72,7 +73,7 @@ func (d OffchainConfigDigester) ConfigDigest(cfg types.ContractConfig) (types.Co
 		return digest, err
 	}
 
-	if err := binary.Write(buf, binary.BigEndian, uint32(len(cfg.OffchainConfig))); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, uint32(len(cfg.OffchainConfig))); err != nil { //nolint:gosec // cannot be negative and max u32 exceeds max offchain config length
 		return digest, err
 	}
 
@@ -85,7 +86,7 @@ func (d OffchainConfigDigester) ConfigDigest(cfg types.ContractConfig) (types.Co
 		return digest, fmt.Errorf("incorrect hash size %d, expected %d", n, len(digest))
 	}
 
-	pre, err := d.ConfigDigestPrefix()
+	pre, err := d.ConfigDigestPrefix(ctx)
 	if err != nil {
 		return digest, err
 	}
@@ -95,6 +96,6 @@ func (d OffchainConfigDigester) ConfigDigest(cfg types.ContractConfig) (types.Co
 }
 
 // This should return the same constant value on every invocation
-func (OffchainConfigDigester) ConfigDigestPrefix() (types.ConfigDigestPrefix, error) {
+func (OffchainConfigDigester) ConfigDigestPrefix(ctx context.Context) (types.ConfigDigestPrefix, error) {
 	return types.ConfigDigestPrefixSolana, nil
 }

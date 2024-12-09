@@ -105,6 +105,7 @@ func setFromNode(n, f *Node) {
 	if f.URL != nil {
 		n.URL = f.URL
 	}
+	n.SendOnly = f.SendOnly
 }
 
 type TOMLConfig struct {
@@ -112,7 +113,8 @@ type TOMLConfig struct {
 	// Do not access directly, use [IsEnabled]
 	Enabled *bool
 	Chain
-	Nodes Nodes
+	MultiNode MultiNodeConfig
+	Nodes     Nodes
 }
 
 func (c *TOMLConfig) IsEnabled() bool {
@@ -128,6 +130,7 @@ func (c *TOMLConfig) SetFrom(f *TOMLConfig) {
 	}
 	setFromChain(&c.Chain, &f.Chain)
 	c.Nodes.SetFrom(&f.Nodes)
+	c.MultiNode.SetFrom(&f.MultiNode)
 }
 
 func setFromChain(c, f *Chain) {
@@ -247,7 +250,7 @@ func (c *TOMLConfig) MaxRetries() *uint {
 	if *c.Chain.MaxRetries < 0 {
 		return nil // interpret negative numbers as nil (prevents unlikely case of overflow)
 	}
-	mr := uint(*c.Chain.MaxRetries)
+	mr := uint(*c.Chain.MaxRetries) //nolint:gosec // overflow check is handled above
 	return &mr
 }
 
@@ -275,12 +278,22 @@ func (c *TOMLConfig) BlockHistoryPollPeriod() time.Duration {
 	return c.Chain.BlockHistoryPollPeriod.Duration()
 }
 
+func (c *TOMLConfig) ComputeUnitLimitDefault() uint32 {
+	return *c.Chain.ComputeUnitLimitDefault
+}
+
 func (c *TOMLConfig) ListNodes() Nodes {
 	return c.Nodes
 }
 
+func (c *TOMLConfig) SetDefaults() {
+	c.Chain.SetDefaults()
+	c.MultiNode.SetDefaults()
+}
+
 func NewDefault() *TOMLConfig {
 	cfg := &TOMLConfig{}
-	cfg.SetDefaults()
+	cfg.Chain.SetDefaults()
+	cfg.MultiNode.SetDefaults()
 	return cfg
 }
